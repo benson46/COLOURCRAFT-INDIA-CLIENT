@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MagnifyingGlassIcon, UserPlusIcon } from "@heroicons/react/24/outline"
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 import { Users, UserCheck, UserX, Search } from "lucide-react"
 import UserTableRow from "../../components/admin/UserTableRow"
 import { dev_admin_api } from "../../utils/axios"
@@ -15,6 +15,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true)
   const [showBlockModal, setShowBlockModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [togglingUserStatus, setTogglingUserStatus] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -60,6 +61,7 @@ const UserManagement = () => {
 
   const handleToggleUserStatus = async (userEmail) => {
     try {
+      setTogglingUserStatus(true)
       const response = await dev_admin_api.patch(`/user-toogle-status/${userEmail}`)
       if (response.data.success) {
         setUsers((prevUsers) =>
@@ -78,6 +80,8 @@ const UserManagement = () => {
       }
     } catch (error) {
       toast.error("Failed to update user status")
+    } finally {
+      setTogglingUserStatus(false)
     }
   }
 
@@ -171,11 +175,6 @@ const UserManagement = () => {
               <h3 className="text-lg font-semibold text-gray-900 truncate">User Management</h3>
               <p className="text-sm text-gray-600 mt-1">Manage user accounts and permissions</p>
             </div>
-            {/* <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors flex-shrink-0">
-              <UserPlusIcon className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add User</span>
-              <span className="sm:hidden">Add</span>
-            </button> */}
           </div>
         </div>
 
@@ -234,11 +233,7 @@ const UserManagement = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <UserTableRow
-                    key={user.email}
-                    user={user}
-                    onToggleStatus={() => openBlockModal(user)}
-                  />
+                  <UserTableRow key={user.email} user={user} onToggleStatus={() => openBlockModal(user)} />
                 ))
               ) : (
                 <tr>
@@ -290,13 +285,14 @@ const UserManagement = () => {
       {/* Block/Unblock Confirmation Modal */}
       <ConfirmationModal
         isOpen={showBlockModal}
-        onClose={() => setShowBlockModal(false)}
+        onClose={() => !togglingUserStatus && setShowBlockModal(false)}
         onConfirm={handleConfirmToggle}
         title={selectedUser?.status === "Active" ? "Block User" : "Unblock User"}
         message={`Are you sure you want to ${selectedUser?.status === "Active" ? "block" : "unblock"} ${selectedUser?.name}? ${selectedUser?.status === "Active" ? "This will prevent them from accessing their account." : "This will restore their account access."}`}
         confirmText={selectedUser?.status === "Active" ? "Block User" : "Unblock User"}
         cancelText="Cancel"
         type={selectedUser?.status === "Active" ? "danger" : "default"}
+        loading={togglingUserStatus}
       />
     </div>
   )

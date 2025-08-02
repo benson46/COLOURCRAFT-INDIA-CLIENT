@@ -1,8 +1,11 @@
+"use client"
+
 import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { dev_user_api } from "../../utils/axios"
 import { useAuth } from "../../context/authContext"
 import { toast } from "react-toastify"
+import LoadingButton from "../../components/common/LoadingButton"
 
 const UserLoginPage = () => {
   const [errorMessage, setErrorMessage] = useState("")
@@ -15,6 +18,7 @@ const UserLoginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -26,11 +30,11 @@ const UserLoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMessage("")
 
     try {
       const response = await dev_user_api.post("/login", formData)
       setUser(response.data.user)
-      setErrorMessage("")
       toast.success("Login successful! Welcome back.")
       navigate("/")
     } catch (err) {
@@ -44,7 +48,7 @@ const UserLoginPage = () => {
 
   return (
     <div className="min-h-screen bg-cream-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* Background Patterdn */}
+      {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-10 left-10 w-32 h-32 bg-red-100 rounded-full opacity-20 animate-pulse"></div>
         <div className="absolute top-1/2 right-20 w-24 h-24 bg-red-200 rounded-full opacity-30"></div>
@@ -81,7 +85,8 @@ const UserLoginPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg"
+                disabled={isLoading}
+                className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="Enter your email"
               />
             </div>
@@ -99,13 +104,15 @@ const UserLoginPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12"
+                  disabled={isLoading}
+                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isLoading}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-60"
                 >
                   {showPassword ? (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,52 +145,20 @@ const UserLoginPage = () => {
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
-              {/* <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-red-500 border-2 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
-                />
-                <span className="ml-3 text-sm font-medium text-gray-700">
-                  Remember me
-                </span>
-              </label> */}
               <Link to="/forgot-password" className="text-sm text-red-500 hover:text-red-600 font-semibold">
                 Forgot Password?
               </Link>
             </div>
 
             {/* Submit Button */}
-            <button
+            <LoadingButton
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-red-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              loading={isLoading}
+              loadingText="Signing In..."
+              className="w-full bg-red-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Signing In...
-                </div>
-              ) : (
-                "SIGN IN"
-              )}
-            </button>
+              SIGN IN
+            </LoadingButton>
           </form>
 
           {/* Divider */}
@@ -200,7 +175,10 @@ const UserLoginPage = () => {
 
           {/* Social Login */}
           <div className="mt-6 grid grid-cols-2 gap-4">
-            <button className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200">
+            <button
+              disabled={isLoading}
+              className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -222,7 +200,10 @@ const UserLoginPage = () => {
               Google
             </button>
 
-            <button className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200">
+            <button
+              disabled={isLoading}
+              className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>

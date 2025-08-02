@@ -1,4 +1,7 @@
+"use client"
+
 import { useState } from "react"
+import LoadingButton from "../../common/LoadingButton"
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({
@@ -22,22 +25,28 @@ const ContactForm = () => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Simulate form submission API call
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    console.log("Form submitted:", formData)
+      console.log("Form submitted:", formData)
 
-    // Reset form
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      subject: "",
-      message: "",
-    })
+      // Reset form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        subject: "",
+        message: "",
+      })
 
-    setIsSubmitting(false)
-    alert("Thank you! Your message has been sent successfully.")
+      alert("Thank you! Your message has been sent successfully.")
+    } catch (error) {
+      console.error("Form submission failed:", error)
+      alert("Failed to send message. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -54,7 +63,8 @@ const ContactForm = () => {
                 onChange={handleChange}
                 placeholder="FIRST NAME"
                 required
-                className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900"
+                disabled={isSubmitting}
+                className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
             <div>
@@ -65,7 +75,8 @@ const ContactForm = () => {
                 onChange={handleChange}
                 placeholder="LAST NAME"
                 required
-                className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900"
+                disabled={isSubmitting}
+                className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -79,7 +90,8 @@ const ContactForm = () => {
               onChange={handleChange}
               placeholder="EMAIL ADDRESS"
               required
-              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900"
+              disabled={isSubmitting}
+              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -92,7 +104,8 @@ const ContactForm = () => {
               onChange={handleChange}
               placeholder="SUBJECT"
               required
-              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900"
+              disabled={isSubmitting}
+              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -105,19 +118,21 @@ const ContactForm = () => {
               placeholder="YOUR MESSAGE"
               required
               rows={6}
-              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 resize-none"
+              disabled={isSubmitting}
+              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-gray-900 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
             ></textarea>
           </div>
 
           {/* Submit Button */}
           <div className="text-center">
-            <button
+            <LoadingButton
               type="submit"
-              disabled={isSubmitting}
-              className="bg-red-500 text-white px-12 py-4 rounded-lg font-bold text-lg hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              loading={isSubmitting}
+              loadingText="SUBMITTING..."
+              className="bg-red-500 text-white px-12 py-4 rounded-lg font-bold text-lg hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none"
             >
-              {isSubmitting ? "SUBMITTING..." : "SUBMIT FORM"}
-            </button>
+              SUBMIT FORM
+            </LoadingButton>
           </div>
         </form>
       </div>

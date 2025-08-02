@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { MagnifyingGlassIcon, FunnelIcon, EyeIcon } from "@heroicons/react/24/outline"
 import { toast } from "react-toastify"
+import LoadingButton from "../../components/common/LoadingButton"
 
 const Orders = () => {
   const [orders, setOrders] = useState([])
@@ -13,6 +14,7 @@ const Orders = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [newStatus, setNewStatus] = useState("")
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -129,8 +131,13 @@ const Orders = () => {
 
   const handleUpdateOrderStatus = async () => {
     try {
+      setUpdatingStatus(true)
+
       // TODO: Replace with actual API
       // const response = await dev_admin_api.patch(`/orders/${selectedOrder.id}/status`, { status: newStatus })
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
       setOrders((prevOrders) =>
         prevOrders.map((order) => (order.id === selectedOrder.id ? { ...order, orderStatus: newStatus } : order)),
@@ -142,6 +149,8 @@ const Orders = () => {
       setNewStatus("")
     } catch (error) {
       toast.error("Failed to update order status")
+    } finally {
+      setUpdatingStatus(false)
     }
   }
 
@@ -431,7 +440,10 @@ const Orders = () => {
       {/* Update Order Status Modal */}
       {showUpdateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 backdrop-blur-sm bg-white/30" onClick={() => setShowUpdateModal(false)} />
+          <div
+            className="absolute inset-0 backdrop-blur-sm bg-white/30"
+            onClick={() => !updatingStatus && setShowUpdateModal(false)}
+          />
 
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Update Order Status</h3>
@@ -440,7 +452,8 @@ const Orders = () => {
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={updatingStatus}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="Pending">Pending</option>
                 <option value="Confirmed">Confirmed</option>
@@ -455,16 +468,19 @@ const Orders = () => {
             <div className="flex space-x-3 justify-end">
               <button
                 onClick={() => setShowUpdateModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                disabled={updatingStatus}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
-              <button
+              <LoadingButton
                 onClick={handleUpdateOrderStatus}
+                loading={updatingStatus}
+                loadingText="Updating..."
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Update Status
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

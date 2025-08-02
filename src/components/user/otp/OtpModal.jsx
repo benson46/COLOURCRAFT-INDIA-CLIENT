@@ -1,9 +1,14 @@
+"use client"
+
 import { useState, useEffect } from "react"
+import { dev_user_api } from "../../../utils/axios"
+import LoadingButton from "../../common/LoadingButton"
 
 const OtpModal = ({ isOpen, onClose, onVerify, email }) => {
   const [otp, setOtp] = useState("")
   const [error, setError] = useState("")
   const [verifying, setVerifying] = useState(false)
+  const [resending, setResending] = useState(false)
   const [countdown, setCountdown] = useState(300) // 5 minutes
   const [resendAttempts, setResendAttempts] = useState(0)
   const [canResend, setCanResend] = useState(false)
@@ -53,14 +58,20 @@ const OtpModal = ({ isOpen, onClose, onVerify, email }) => {
     }
 
     try {
+      setResending(true)
       // Mock API call to resend OTP
-      setResendAttempts((prev) => prev + 1)
-      setCountdown(300)
-      setCanResend(false)
-      setError("")
-      // toast.success("OTP resent successfully")
+      const response = await dev_user_api.post("/resend-otp", { email })
+      if (response.data.success) {
+        setResendAttempts((prev) => prev + 1)
+        setCountdown(300)
+        setCanResend(false)
+        setError("")
+        // toast.success("OTP resent successfully")
+      }
     } catch (error) {
       setError("Failed to resend OTP")
+    } finally {
+      setResending(false)
     }
   }
 
@@ -82,7 +93,8 @@ const OtpModal = ({ isOpen, onClose, onVerify, email }) => {
           maxLength={6}
           value={otp}
           onChange={handleOtpChange}
-          className="w-full text-center text-lg tracking-widest px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+          disabled={verifying}
+          className="w-full text-center text-lg tracking-widest px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           placeholder="Enter OTP"
         />
 
@@ -97,21 +109,27 @@ const OtpModal = ({ isOpen, onClose, onVerify, email }) => {
             )}
           </div>
           {canResend && resendAttempts < 3 && (
-            <button onClick={handleResendOTP} className="text-red-500 hover:text-red-600 font-medium">
+            <LoadingButton
+              onClick={handleResendOTP}
+              loading={resending}
+              loadingText="Resending..."
+              className="text-red-500 hover:text-red-600 font-medium text-sm"
+            >
               Resend OTP ({3 - resendAttempts} left)
-            </button>
+            </LoadingButton>
           )}
         </div>
 
         {error && <p className="text-sm text-red-600 mt-3 text-center">{error}</p>}
 
-        <button
+        <LoadingButton
           onClick={handleVerify}
-          disabled={verifying}
+          loading={verifying}
+          loadingText="Verifying..."
           className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all duration-300"
         >
-          {verifying ? "Verifying..." : "Verify OTP"}
-        </button>
+          Verify OTP
+        </LoadingButton>
       </div>
     </div>
   )

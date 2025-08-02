@@ -1,9 +1,12 @@
+"use client"
+
 import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { dev_user_api } from "../../utils/axios"
 import OtpModal from "../../components/user/otp/OtpModal"
 import { toast } from "react-toastify"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
+import LoadingButton from "../../components/common/LoadingButton"
 
 const UserRegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -23,6 +26,7 @@ const UserRegisterPage = () => {
   const [otpModalOpen, setOtpModalOpen] = useState(false)
 
   const navigate = useNavigate()
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -71,14 +75,15 @@ const UserRegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validateForm()) return
+
     setIsLoading(true)
+    setErrorMessage("")
+    setErrorDetails("")
 
     try {
       await dev_user_api.post("/initiate-register", formData)
       console.log("User registration attempt:", formData)
       setOtpModalOpen(true)
-      setErrorDetails("")
-      setErrorMessage("")
       toast.success("OTP sent to your email address")
     } catch (err) {
       const errorMsg = err.response?.data?.error || "Something went wrong please try after some time"
@@ -125,7 +130,8 @@ const UserRegisterPage = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg ${
+                disabled={isLoading}
+                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg disabled:opacity-60 disabled:cursor-not-allowed ${
                   errors.name ? "border-red-300 bg-red-50" : "border-gray-200"
                 }`}
                 placeholder="Enter your full name"
@@ -144,7 +150,8 @@ const UserRegisterPage = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg ${
+                disabled={isLoading}
+                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg disabled:opacity-60 disabled:cursor-not-allowed ${
                   errors.email ? "border-red-300 bg-red-50" : "border-gray-200"
                 }`}
                 placeholder="Enter your email"
@@ -164,7 +171,8 @@ const UserRegisterPage = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12 ${
+                  disabled={isLoading}
+                  className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12 disabled:opacity-60 disabled:cursor-not-allowed ${
                     errors.password ? "border-red-300 bg-red-50" : "border-gray-200"
                   }`}
                   placeholder="Create a password"
@@ -172,13 +180,14 @@ const UserRegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-60"
                 >
                   {showPassword ? (
-                      <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
                 </button>
               </div>
               {errors.password && <p className="mt-2 text-sm text-red-600 font-medium">{errors.password}</p>}
@@ -199,7 +208,8 @@ const UserRegisterPage = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12 ${
+                  disabled={isLoading}
+                  className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 text-lg pr-12 disabled:opacity-60 disabled:cursor-not-allowed ${
                     errors.confirmPassword ? "border-red-300 bg-red-50" : "border-gray-200"
                   }`}
                   placeholder="Confirm your password"
@@ -207,13 +217,14 @@ const UserRegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-60"
                 >
                   {showConfirmPassword ? (
-                      <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
                 </button>
               </div>
               {errors.confirmPassword && (
@@ -222,14 +233,15 @@ const UserRegisterPage = () => {
             </div>
 
             {/* Newsletter */}
-            <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+            {/* <div className="bg-red-50 rounded-xl p-4 border border-red-100">
               <label className="flex items-start cursor-pointer">
                 <input
                   type="checkbox"
                   name="newsletter"
                   checked={formData.newsletter}
                   onChange={handleChange}
-                  className="w-5 h-5 text-red-500 border-2 border-red-300 rounded mt-1"
+                  disabled={isLoading}
+                  className="w-5 h-5 text-red-500 border-2 border-red-300 rounded mt-1 disabled:opacity-60"
                 />
                 <div className="ml-3">
                   <span className="text-sm font-semibold text-red-800">📧 Subscribe to our newsletter</span>
@@ -238,7 +250,7 @@ const UserRegisterPage = () => {
                   </p>
                 </div>
               </label>
-            </div>
+            </div> */}
 
             {/* Terms Agreement */}
             <div>
@@ -248,7 +260,8 @@ const UserRegisterPage = () => {
                   name="agreeToTerms"
                   checked={formData.agreeToTerms}
                   onChange={handleChange}
-                  className="w-5 h-5 text-red-500 border-2 border-gray-300 rounded mt-1"
+                  disabled={isLoading}
+                  className="w-5 h-5 text-red-500 border-2 border-gray-300 rounded mt-1 disabled:opacity-60"
                 />
                 <span className="ml-3 text-sm text-gray-600">
                   I agree to the{" "}
@@ -265,13 +278,14 @@ const UserRegisterPage = () => {
             </div>
 
             {/* Submit */}
-            <button
+            <LoadingButton
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-red-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50"
+              loading={isLoading}
+              loadingText="Creating Account..."
+              className="w-full bg-red-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none"
             >
-              {isLoading ? "Creating Account..." : "CREATE ACCOUNT"}
-            </button>
+              CREATE ACCOUNT
+            </LoadingButton>
             <p className="text-1xl font-bold text-center text-red-500 mb-3">
               {errorDetails && `Suggestion: ${errorDetails?.suggestion}`}
             </p>

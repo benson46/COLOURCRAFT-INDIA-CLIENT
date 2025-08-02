@@ -1,71 +1,77 @@
-import { useState, useEffect } from "react";
-import {
-  PlusIcon,
-  PencilIcon,
-  LockClosedIcon,
-  LockOpenIcon,
-  MagnifyingGlassIcon,
-} from "@heroicons/react/24/outline";
-import { toast } from "react-toastify";
-import { format } from "date-fns";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { dev_admin_api } from "../../utils/axios";
+"use client"
+
+import { useState, useEffect } from "react"
+import { PlusIcon, PencilIcon, LockClosedIcon, LockOpenIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline"
+import { toast } from "react-toastify"
+import { format } from "date-fns"
+import ConfirmationModal from "../../components/common/ConfirmationModal"
+import { dev_admin_api } from "../../utils/axios"
+import LoadingButton from "../../components/common/LoadingButton"
 
 const CategoryManagement = () => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showEditConfirmModal, setShowEditConfirmModal] = useState(false)
+  const [showBlockModal, setShowBlockModal] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState(null)
   const [formData, setFormData] = useState({
     title: "",
     status: "Active",
-  });
+  })
+
+  // Loading states for different actions
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [updatingCategory, setUpdatingCategory] = useState(false)
+  const [togglingStatus, setTogglingStatus] = useState(false)
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        setLoading(true);
+        setLoading(true)
         const response = await dev_admin_api.get(
-          `/category?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}`
-        );
-        setCategories(response.data.categories);
-        setTotalPages(response.data.totalPages);
+          `/category?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}`,
+        )
+        setCategories(response.data.categories)
+        setTotalPages(response.data.totalPages)
       } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Failed to load categories");
+        console.error("Error fetching categories:", error)
+        toast.error("Failed to load categories")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    fetchCategories();
-  }, [currentPage, searchTerm]);
+    }
+    fetchCategories()
+  }, [currentPage, searchTerm])
 
   const handleAddCategory = async () => {
     try {
-      const response = await dev_admin_api.post("/category", formData);
-      setCategories((prev) => [response.data, ...prev]);
-      setShowAddModal(false);
-      setFormData({ title: "", status: "Active" });
-      toast.success("Category added successfully");
+      setAddingCategory(true)
+      const response = await dev_admin_api.post("/category", formData)
+      setCategories((prev) => [response.data, ...prev])
+      setShowAddModal(false)
+      setFormData({ title: "", status: "Active" })
+      toast.success("Category added successfully")
     } catch (error) {
-      toast.error("Failed to add category");
+      toast.error("Failed to add category")
+    } finally {
+      setAddingCategory(false)
     }
-  };
+  }
 
   const handleEditCategory = async () => {
     try {
+      setUpdatingCategory(true)
       await dev_admin_api.patch(`/category/${selectedCategory._id}`, {
         title: formData.title,
-      });
+      })
       setCategories((prev) =>
         prev.map((cat) =>
           cat._id === selectedCategory._id
@@ -73,96 +79,87 @@ const CategoryManagement = () => {
                 ...cat,
                 title: formData.title,
               }
-            : cat
-        )
-      );
-      setShowEditModal(false);
-      setShowEditConfirmModal(false);
-      setSelectedCategory(null);
-      setFormData({ title: "", status: "Active" });
-      toast.success("Category updated successfully");
+            : cat,
+        ),
+      )
+      setShowEditModal(false)
+      setShowEditConfirmModal(false)
+      setSelectedCategory(null)
+      setFormData({ title: "", status: "Active" })
+      toast.success("Category updated successfully")
     } catch (error) {
-      toast.error("Failed to update category");
+      toast.error("Failed to update category")
+    } finally {
+      setUpdatingCategory(false)
     }
-  };
+  }
 
   const handleToggleBlock = async () => {
-    if (!selectedCategory) return;
+    if (!selectedCategory) return
 
     try {
-      const newStatus =
-        selectedCategory.status === "Active" ? "Inactive" : "Active";
-      await dev_admin_api.patch(
-        `/category-tootgle-status/${selectedCategory._id}`,
-        {
-          status: newStatus,
-        }
-      );
+      setTogglingStatus(true)
+      const newStatus = selectedCategory.status === "Active" ? "Inactive" : "Active"
+      await dev_admin_api.patch(`/category-tootgle-status/${selectedCategory._id}`, {
+        status: newStatus,
+      })
       setCategories((prev) =>
-        prev.map((cat) =>
-          cat._id === selectedCategory._id ? { ...cat, status: newStatus } : cat
-        )
-      );
-      setShowBlockModal(false);
-      setSelectedCategory(null);
-      toast.success(
-        `Category ${newStatus === "Active" ? "unblocked" : "blocked"} successfully`
-      );
+        prev.map((cat) => (cat._id === selectedCategory._id ? { ...cat, status: newStatus } : cat)),
+      )
+      setShowBlockModal(false)
+      setSelectedCategory(null)
+      toast.success(`Category ${newStatus === "Active" ? "unblocked" : "blocked"} successfully`)
     } catch (error) {
-      toast.error(
-        `Failed to ${selectedCategory.status === "Active" ? "block" : "unblock"} category`
-      );
+      toast.error(`Failed to ${selectedCategory.status === "Active" ? "block" : "unblock"} category`)
+    } finally {
+      setTogglingStatus(false)
     }
-  };
+  }
 
   const openEditModal = (category) => {
-    setSelectedCategory(category);
+    setSelectedCategory(category)
     setFormData({
       title: category.title,
       status: "Active",
-    });
-    setShowEditModal(true);
-  };
+    })
+    setShowEditModal(true)
+  }
 
   const openBlockModal = (category) => {
-    setSelectedCategory(category);
-    setShowBlockModal(true);
-  };
+    setSelectedCategory(category)
+    setShowBlockModal(true)
+  }
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+    setCurrentPage(page)
+  }
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(currentPage - 1)
     }
-  };
+  }
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(currentPage + 1)
     }
-  };
+  }
 
   const getStatusBadge = (status) => {
     return status === "Active" ? (
-      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-        Active
-      </span>
+      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
     ) : (
-      <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-        Inactive
-      </span>
-    );
-  };
+      <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
+    )
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -172,20 +169,11 @@ const CategoryManagement = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Categories
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {categories.length}
-              </p>
+              <p className="text-sm font-medium text-gray-600">Total Categories</p>
+              <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
             </div>
             <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -200,26 +188,14 @@ const CategoryManagement = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Categories
-              </p>
+              <p className="text-sm font-medium text-gray-600">Active Categories</p>
               <p className="text-2xl font-bold text-green-600">
                 {categories.filter((cat) => cat.status === "Active").length}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-green-50 text-green-600">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
@@ -228,20 +204,13 @@ const CategoryManagement = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Products
-              </p>
+              <p className="text-sm font-medium text-gray-600">Total Products</p>
               <p className="text-2xl font-bold text-purple-600">
                 {categories.reduce((sum, cat) => sum + cat.productCount, 0)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-purple-50 text-purple-600">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -259,12 +228,8 @@ const CategoryManagement = () => {
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Category Management
-            </h3>
-            <p className="text-sm text-gray-600">
-              Manage product categories and their details
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900">Category Management</h3>
+            <p className="text-sm text-gray-600">Manage product categories and their details</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -316,10 +281,7 @@ const CategoryManagement = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {categories.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-12 text-center text-sm text-gray-500"
-                  >
+                  <td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">
                     <div className="flex flex-col items-center">
                       <svg
                         className="w-12 h-12 text-gray-400 mb-4"
@@ -334,42 +296,25 @@ const CategoryManagement = () => {
                           d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                         />
                       </svg>
-                      <h3 className="text-sm font-medium text-gray-900 mb-1">
-                        No categories found
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Try adjusting your search criteria
-                      </p>
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">No categories found</h3>
+                      <p className="text-sm text-gray-500">Try adjusting your search criteria</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 categories.map((category) => (
-                  <tr
-                    key={category._id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
+                  <tr key={category._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {category.title}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{category.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {category.productCount}
-                      </div>
+                      <div className="text-sm text-gray-900">{category.productCount}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(category.status)}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(category.status)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {category.createdAt &&
-                        !isNaN(new Date(category.createdAt))
-                          ? format(
-                              new Date(category.createdAt),
-                              "dd-MM-yyyy hh:mm"
-                            )
+                        {category.createdAt && !isNaN(new Date(category.createdAt))
+                          ? format(new Date(category.createdAt), "dd-MM-yyyy hh:mm")
                           : "-"}
                       </div>
                     </td>
@@ -409,8 +354,8 @@ const CategoryManagement = () => {
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span>{" "}
-                of <span className="font-medium">{totalPages}</span>
+                Showing page <span className="font-medium">{currentPage}</span> of{" "}
+                <span className="font-medium">{totalPages}</span>
               </p>
               <nav className="flex justify-center gap-3">
                 <button
@@ -441,24 +386,19 @@ const CategoryManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 backdrop-blur-sm bg-white/30"
-            onClick={() => setShowAddModal(false)}
+            onClick={() => !addingCategory && setShowAddModal(false)}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Add New Category
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Category</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category title
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category title</label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={addingCategory}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="Enter category title"
                 />
               </div>
@@ -466,16 +406,19 @@ const CategoryManagement = () => {
             <div className="flex space-x-3 justify-end mt-6">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                disabled={addingCategory}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
-              <button
+              <LoadingButton
                 onClick={handleAddCategory}
+                loading={addingCategory}
+                loadingText="Adding..."
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Add Category
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>
@@ -486,40 +429,38 @@ const CategoryManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 backdrop-blur-sm bg-white/30"
-            onClick={() => setShowEditModal(false)}
+            onClick={() => !updatingCategory && setShowEditModal(false)}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Edit Category
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Category</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category title
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category title</label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={updatingCategory}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
             <div className="flex space-x-3 justify-end mt-6">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                disabled={updatingCategory}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
-              <button
+              <LoadingButton
                 onClick={() => setShowEditConfirmModal(true)}
+                loading={updatingCategory}
+                loadingText="Updating..."
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Update Category
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>
@@ -528,36 +469,32 @@ const CategoryManagement = () => {
       {/* Edit Confirmation Modal */}
       <ConfirmationModal
         isOpen={showEditConfirmModal}
-        onClose={() => setShowEditConfirmModal(false)}
+        onClose={() => !updatingCategory && setShowEditConfirmModal(false)}
         onConfirm={handleEditCategory}
         title="Confirm Update"
         message={`Are you sure you want to update the category "${selectedCategory?.title}"?`}
         confirmText="Update Category"
         cancelText="Cancel"
         type="info"
+        loading={updatingCategory}
       />
 
       {/* Block/Unblock Confirmation Modal */}
       <ConfirmationModal
         isOpen={showBlockModal}
-        onClose={() => setShowBlockModal(false)}
+        onClose={() => !togglingStatus && setShowBlockModal(false)}
         onConfirm={handleToggleBlock}
-        title={
-          selectedCategory?.status === "Active"
-            ? "Block Category"
-            : "Unblock Category"
-        }
+        title={selectedCategory?.status === "Active" ? "Block Category" : "Unblock Category"}
         message={`Are you sure you want to ${
           selectedCategory?.status === "Active" ? "block" : "unblock"
         } the category "${selectedCategory?.title}"?`}
-        confirmText={
-          selectedCategory?.status === "Active" ? "Block" : "Unblock"
-        }
+        confirmText={selectedCategory?.status === "Active" ? "Block" : "Unblock"}
         cancelText="Cancel"
         type={selectedCategory?.status === "Active" ? "danger" : "info"}
+        loading={togglingStatus}
       />
     </div>
-  );
-};
+  )
+}
 
-export default CategoryManagement;
+export default CategoryManagement
