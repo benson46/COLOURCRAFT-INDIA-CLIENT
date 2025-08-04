@@ -21,8 +21,7 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const productsPerPage = 12;
   const navigate = useNavigate();
-
-  // Mock user authentication
+  
   const user = localStorage.getItem("user") || null;
 
   const fetchProducts = async () => {
@@ -64,6 +63,7 @@ const ProductsPage = () => {
       navigate("/login");
       return;
     }
+    if (product.stock <= 0) return;
     // Add to cart logic would go here
     console.log("Added to cart:", product);
   };
@@ -135,13 +135,22 @@ const ProductsPage = () => {
   const ProductCard = ({ product }) => {
     const avgRating = calculateAverageRating(product.ratings);
     const isFavorite = favorites.includes(product._id);
+    const isOutOfStock = product.stock <= 0;
     
     return (
-      <div className="group relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200">
+      <div 
+        className="group relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 cursor-pointer"
+        onClick={(e) => {
+          // Only navigate if not clicking on buttons
+          if (!e.target.closest('button')) {
+            navigate(`/product/${product._id}`);
+          }
+        }}
+      >
         {/* Favorite button */}
         <button 
           onClick={(e) => {
-            e.preventDefault();
+            e.stopPropagation();
             toggleFavorite(product._id);
           }}
           className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-gray-100 transition-colors"
@@ -149,38 +158,47 @@ const ProductsPage = () => {
           <HeartIcon className={`w-5 h-5 ${isFavorite ? 'text-gray-900 fill-current' : 'text-gray-400'}`} />
         </button>
         
+        {/* Out of stock badge */}
+        {isOutOfStock && (
+          <div className="absolute top-3 left-3 z-10 bg-red-100 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full">
+            Out of Stock
+          </div>
+        )}
+        
         {/* Product Image */}
         <div className="aspect-square overflow-hidden bg-gray-50 relative">
           <div className="relative h-full">
             <img
               src={product.images?.[0]}
               alt={product.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isOutOfStock ? 'opacity-70' : ''}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           
           {/* Quick add to cart */}
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              handleAddToCart(product);
-            }}
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-gray-900 font-medium py-2 px-6 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-50 flex items-center gap-2"
-          >
-            <ShoppingBagIcon className="w-5 h-5" />
-            <span>Add to Cart</span>
-          </button>
+          {!isOutOfStock && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart(product);
+              }}
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-gray-900 font-medium py-2 px-6 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-50 flex items-center gap-2"
+            >
+              <ShoppingBagIcon className="w-5 h-5" />
+              <span>Add to Cart</span>
+            </button>
+          )}
         </div>
 
         {/* Product Info */}
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-gray-700 transition-colors line-clamp-1">
+              <h3 className={`text-lg font-semibold mb-1 group-hover:text-gray-700 transition-colors line-clamp-1 ${isOutOfStock ? 'text-gray-400' : 'text-gray-900'}`}>
                 {product.title}
               </h3>
-              <p className="text-gray-500 text-sm mb-3 line-clamp-2 min-h-[40px]">
+              <p className={`text-sm mb-3 line-clamp-2 min-h-[40px] ${isOutOfStock ? 'text-gray-400' : 'text-gray-500'}`}>
                 {product.description}
               </p>
             </div>
@@ -191,26 +209,37 @@ const ProductsPage = () => {
             <div className="flex">
               {[1, 2, 3, 4, 5].map((star) => (
                 avgRating >= star 
-                  ? <SolidStarIcon key={star} className="w-4 h-4 text-amber-500" />
-                  : <StarIcon key={star} className="w-4 h-4 text-amber-500" />
+                  ? <SolidStarIcon key={star} className={`w-4 h-4 ${isOutOfStock ? 'text-amber-300' : 'text-amber-500'}`} />
+                  : <StarIcon key={star} className={`w-4 h-4 ${isOutOfStock ? 'text-amber-300' : 'text-amber-500'}`} />
               ))}
             </div>
-            <span className="text-gray-500 text-sm ml-2">({product.ratings?.length || 0})</span>
+            <span className={`text-sm ml-2 ${isOutOfStock ? 'text-gray-400' : 'text-gray-500'}`}>
+              ({product.ratings?.length || 0})
+            </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <p className="text-xl font-bold text-gray-900">
+            <p className={`text-xl font-bold ${isOutOfStock ? 'text-gray-400' : 'text-gray-900'}`}>
               ₹{product.price.toLocaleString('en-IN')}
             </p>
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/product/${product._id}`);
-              }}
-              className="text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              View Details
-            </button>
+            
+            {/* Add to Cart Button */}
+            {isOutOfStock ? (
+              <span className="text-sm font-medium text-gray-400">
+                Unavailable
+              </span>
+            ) : (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToCart(product);
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <ShoppingBagIcon className="w-4 h-4" />
+                <span>Add to Cart</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
