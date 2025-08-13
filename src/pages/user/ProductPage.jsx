@@ -1,40 +1,77 @@
-"use client"
-
-import { useState } from "react"
-import { useParams, Link } from "react-router"
-import { products } from "../../data/products"
+import { useEffect, useState } from "react"
+import { useParams, Link, useNavigate } from "react-router"
 import { Helmet } from "react-helmet"
 import { StarIcon } from "@heroicons/react/24/outline"
 import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid"
 import { MagnifyingGlassIcon, HeartIcon, ShareIcon } from "@heroicons/react/24/outline"
 import { toast } from "react-toastify"
+import { dev_user_api } from "../../utils/axios"
 
 const ProductPage = () => {
   const { id } = useParams()
-  const product = products.find((p) => p.id === Number.parseInt(id))
+  const navigate = useNavigate()
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  useEffect(() => {
+    const fetchProduct = async() => {
+      try {
+        setLoading(true)
+        const response = await dev_user_api.get(`product/${id}`)
+        if (response.data.success && response.data.product) {
+          setProduct(response.data.product)
+        } else {
+          setError("Product not found")
+        }
+      } catch (err) {
+        console.error("Error fetching product:", err)
+        setError("Failed to load product details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+  }, [id])
 
-  const [selectedColor, setSelectedColor] = useState(product?.colors[0] || "")
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || "")
   const [quantity, setQuantity] = useState(1)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isZoomed, setIsZoomed] = useState(false)
   const [activeTab, setActiveTab] = useState("description")
 
-  // Mock additional data
+  // Dummy data for missing fields
+  const mockColors = ["blue", "black", "red", "white"]
+  const mockSizes = ["S", "M", "L", "XL"]
   const mockRating = 4.5
   const mockReviewCount = 127
-  const mockDiscount = 15
-  const mockOriginalPrice = product ? Math.round(Number.parseInt(product.price.replace("₹", "")) * 1.18) : 0
-  const mockStock = Math.floor(Math.random() * 50) + 1
+  const mockDiscount = product ? Math.floor(Math.random() * 30) + 5 : 15
+  const mockOriginalPrice = product ? Math.round(product.price * (1 + mockDiscount/100)) : 0
 
-  if (!product) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h1>
-          <Link to="/shop" className="text-red-500 hover:text-red-600 font-medium">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading product...</h1>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md mx-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+          <p className="text-gray-600 mb-6">
+            The product you're looking for doesn't exist or may have been removed.
+          </p>
+          <button
+            onClick={() => navigate("/products")}
+            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-300"
+          >
             Back to Shop
-          </Link>
+          </button>
         </div>
       </div>
     )
@@ -42,7 +79,7 @@ const ProductPage = () => {
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change
-    if (newQuantity >= 1) {
+    if (newQuantity >= 1 && newQuantity <= product.stock) {
       setQuantity(newQuantity)
     }
   }
@@ -62,7 +99,7 @@ const ProductPage = () => {
   }
 
   const getStockStatus = () => {
-    if (!product.inStock) {
+    if (product.stock <= 0) {
       return {
         status: "Out of Stock",
         color: "text-red-600",
@@ -70,9 +107,9 @@ const ProductPage = () => {
         borderColor: "border-red-200",
       }
     }
-    if (mockStock < 5) {
+    if (product.stock < 5) {
       return {
-        status: `Only ${mockStock} left in stock`,
+        status: `Only ${product.stock} left in stock`,
         color: "text-orange-600",
         bgColor: "bg-orange-50",
         borderColor: "border-orange-200",
@@ -87,14 +124,9 @@ const ProductPage = () => {
   }
 
   const stockInfo = getStockStatus()
-
-  // Mock multiple product images
-  const productImages = [
-    product.image || "/placeholder.svg?height=600&width=600&text=Main+Image",
-    "/placeholder.svg?height=600&width=600&text=Side+View",
-    "/placeholder.svg?height=600&width=600&text=Back+View",
-    "/placeholder.svg?height=600&width=600&text=Detail+View",
-  ]
+  const productImages = product.images.length > 0 
+    ? product.images 
+    : ["/placeholder.svg?height=600&width=600&text=No+Image"]
 
   const renderStars = (rating) => {
     const stars = []
@@ -124,9 +156,15 @@ const ProductPage = () => {
     return stars
   }
 
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(price)
+  }
+
   const handleAddToCart = () => {
-    // TODO: Replace with actual API
-    // const res = await addToCart(product.id, quantity, selectedColor, selectedSize);
     toast.success("Product added to cart successfully!", {
       position: "top-right",
       autoClose: 3000,
@@ -135,16 +173,12 @@ const ProductPage = () => {
   }
 
   const handleAddToWishlist = () => {
-    // TODO: Replace with actual API
-    // const res = await addToWishlist(product.id);
     toast.success("Added to wishlist!", {
       position: "top-right",
       autoClose: 3000,
       theme: "light",
     })
   }
-
-  const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4)
 
   const mockReviews = [
     {
@@ -173,15 +207,13 @@ const ProductPage = () => {
   return (
     <>
       <Helmet>
-        <title>{product.name} - Colourcraft India</title>
+        <title>{`${product.title} - Colourcraft India`}</title>
         <meta
           name="description"
-          content={
-            product.description ||
-            `Buy ${product.name} at best price. High quality printing products from Colourcraft India.`
-          }
+          content={product.description || `Buy ${product.title} at best price. High quality printing products from Colourcraft India.`}
         />
       </Helmet>
+      
       <div className="min-h-screen bg-cream-50">
         {/* Breadcrumb */}
         <div className="bg-cream-50 py-4 border-b border-gray-200">
@@ -199,7 +231,7 @@ const ProductPage = () => {
                 Products
               </Link>
               <span>/</span>
-              <span className="text-gray-900 font-medium truncate">{product.name}</span>
+              <span className="text-gray-900 font-medium truncate">{product.title}</span>
             </nav>
           </div>
         </div>
@@ -216,8 +248,8 @@ const ProductPage = () => {
                   onClick={() => setIsZoomed(!isZoomed)}
                 >
                   <img
-                    src={productImages[selectedImageIndex] || "/placeholder.svg"}
-                    alt={product.name}
+                    src={productImages[selectedImageIndex]}
+                    alt={product.title}
                     className={`w-full h-full object-cover transition-transform duration-300 ${isZoomed ? "scale-150" : "scale-100"}`}
                   />
                   <div className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow">
@@ -237,8 +269,8 @@ const ProductPage = () => {
                     }`}
                   >
                     <img
-                      src={image || "/placeholder.svg"}
-                      alt={`${product.name} view ${index + 1}`}
+                      src={image}
+                      alt={`${product.title} view ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -249,7 +281,7 @@ const ProductPage = () => {
             {/* Product Info */}
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
 
                 {/* Rating */}
                 <div className="flex items-center space-x-2 mb-4">
@@ -261,10 +293,10 @@ const ProductPage = () => {
 
                 {/* Price */}
                 <div className="flex items-center space-x-3 mb-4">
-                  <span className="text-2xl lg:text-3xl font-bold text-gray-900">{product.price}</span>
+                  <span className="text-2xl lg:text-3xl font-bold text-gray-900">{formatPrice(product.price)}</span>
                   {mockDiscount > 0 && (
                     <>
-                      <span className="text-lg text-gray-500 line-through">₹{mockOriginalPrice}</span>
+                      <span className="text-lg text-gray-500 line-through">{formatPrice(mockOriginalPrice)}</span>
                       <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded">
                         {mockDiscount}% OFF
                       </span>
@@ -281,20 +313,16 @@ const ProductPage = () => {
               </div>
 
               {/* Color Selection */}
-              {product.colors && product.colors.length > 0 && (
+              {mockColors.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-gray-900">COLOR</span>
-                    <span className="text-sm text-blue-600 font-medium uppercase">{selectedColor}</span>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {product.colors.map((color) => (
+                    {mockColors.map((color) => (
                       <button
                         key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`w-8 h-8 rounded-full ${getColorClass(color)} ${
-                          selectedColor === color ? "ring-2 ring-offset-2 ring-red-500" : ""
-                        } transition-all duration-200`}
+                        className={`w-8 h-8 rounded-full ${getColorClass(color)} ring-2 ring-offset-2 ring-transparent hover:ring-red-300 transition-all duration-200`}
                         title={color}
                       />
                     ))}
@@ -303,22 +331,17 @@ const ProductPage = () => {
               )}
 
               {/* Size Selection */}
-              {product.sizes && product.sizes.length > 0 && (
+              {mockSizes.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-gray-900">SIZE</span>
                     <button className="text-sm text-gray-600 hover:text-red-500 transition-colors">SIZE GUIDE</button>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {product.sizes.map((size) => (
+                    {mockSizes.map((size) => (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`px-4 py-2 border rounded-lg font-medium transition-all duration-200 ${
-                          selectedSize === size
-                            ? "border-red-500 text-red-500 bg-red-50"
-                            : "border-gray-300 text-gray-700 hover:border-gray-400"
-                        }`}
+                        className={`px-4 py-2 border rounded-lg font-medium transition-all duration-200 border-gray-300 text-gray-700 hover:border-gray-400`}
                       >
                         {size}
                       </button>
@@ -344,20 +367,24 @@ const ProductPage = () => {
                     <button
                       onClick={() => handleQuantityChange(1)}
                       className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                      disabled={quantity >= product.stock}
                     >
                       +
                     </button>
                   </div>
+                  <span className="text-sm text-gray-500">
+                    {product.stock} available
+                  </span>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={!product.inStock}
+                    disabled={product.stock <= 0}
                     className="flex-1 bg-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    {product.inStock ? "Add to Cart" : "Out of Stock"}
+                    {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
                   </button>
                   <button
                     onClick={handleAddToWishlist}
@@ -428,7 +455,7 @@ const ProductPage = () => {
                 <div className="prose max-w-none">
                   <p className="text-gray-600 leading-relaxed">
                     {product.description ||
-                      `Experience premium quality printing with our ${product.name}. Crafted with attention to detail and using the finest materials, this product delivers exceptional results for all your printing needs. Perfect for both personal and professional use.`}
+                      `Experience premium quality printing with our ${product.title}. Crafted with attention to detail and using the finest materials, this product delivers exceptional results for all your printing needs. Perfect for both personal and professional use.`}
                   </p>
                   <h4 className="font-semibold text-gray-900 mt-6 mb-3">Key Highlights:</h4>
                   <ul className="list-disc list-inside space-y-2 text-gray-600">
@@ -448,7 +475,7 @@ const ProductPage = () => {
                     <dl className="space-y-3">
                       <div className="flex justify-between">
                         <dt className="text-gray-600">Category:</dt>
-                        <dd className="font-medium text-gray-900">{product.category}</dd>
+                        <dd className="font-medium text-gray-900">{product.category || "Printing Material"}</dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-gray-600">Material:</dt>
@@ -462,18 +489,14 @@ const ProductPage = () => {
                         <dt className="text-gray-600">Finish:</dt>
                         <dd className="font-medium text-gray-900">Matte/Glossy</dd>
                       </div>
-                      {product.colors && (
-                        <div className="flex justify-between">
-                          <dt className="text-gray-600">Available Colors:</dt>
-                          <dd className="font-medium text-gray-900">{product.colors.join(", ")}</dd>
-                        </div>
-                      )}
-                      {product.sizes && (
-                        <div className="flex justify-between">
-                          <dt className="text-gray-600">Available Sizes:</dt>
-                          <dd className="font-medium text-gray-900">{product.sizes.join(", ")}</dd>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Available Colors:</dt>
+                        <dd className="font-medium text-gray-900">{mockColors.join(", ")}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Available Sizes:</dt>
+                        <dd className="font-medium text-gray-900">{mockSizes.join(", ")}</dd>
+                      </div>
                     </dl>
                   </div>
                   <div>
@@ -536,34 +559,6 @@ const ProductPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <div className="bg-white py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {relatedProducts.map((relatedProduct) => (
-                  <Link key={relatedProduct.id} to={`/product/${relatedProduct.id}`} className="group">
-                    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="aspect-square overflow-hidden">
-                        <img
-                          src={relatedProduct.image || "/placeholder.svg?height=300&width=300"}
-                          alt={relatedProduct.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">{relatedProduct.name}</h3>
-                        <p className="text-lg font-bold text-gray-900">{relatedProduct.price}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </>
   )
