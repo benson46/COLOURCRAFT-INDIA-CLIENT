@@ -8,10 +8,10 @@ const Sidebar = () => {
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { id: "users", label: "Users", icon: Users, path: "/admin/users" },
-    { id: "orders", label: "Orders", icon: ShoppingCart, path: "/admin/orders" },
     { id: "products", label: "Products", icon: Package, path: "/admin/products" },
     { id: "categories", label: "Categories", icon: FolderOpen, path: "/admin/categories" },
+    { id: "orders", label: "Orders", icon: ShoppingCart, path: "/admin/orders" },
+    { id: "users", label: "Users", icon: Users, path: "/admin/users" },
     { id: "settings", label: "Settings", icon: Settings, path: "/admin/settings" },
   ]
 

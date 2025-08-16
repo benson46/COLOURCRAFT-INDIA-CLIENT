@@ -361,7 +361,7 @@ const ProductsPage = () => {
               <button 
                 onClick={resetFilters}
                 className="text-sm text-gray-600 hover:text-gray-900"
-              >
+              > 
                 Reset
               </button>
             </div>
@@ -371,8 +371,9 @@ const ProductsPage = () => {
             {/* Mobile Filters Drawer */}
             {showMobileFilters && (
               <div className="fixed inset-0 z-50 lg:hidden">
+                {/* Updated background with blur effect */}
                 <div 
-                  className="fixed inset-0 bg-black bg-opacity-50" 
+                  className="fixed inset-0 backdrop-blur-sm" 
                   onClick={() => setShowMobileFilters(false)}
                 />
                 <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-xl overflow-y-auto">

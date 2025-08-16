@@ -54,9 +54,9 @@ const Navbar = () => {
                 Services
               </Link>
               <Link
-                to="/products"
+                to="/shop"
                 className={`${
-                  currentPath === "/products"
+                  currentPath === "/shop"
                     ? "text-coral-500 font-medium"
                     : "text-gray-700 hover:text-coral-500"
                 } transition-colors`}

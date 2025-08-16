@@ -7,11 +7,16 @@ import UserTableRow from "../../components/admin/UserTableRow"
 import { dev_admin_api } from "../../utils/axios"
 import { toast } from "react-toastify"
 import ConfirmationModal from "../../components/common/ConfirmationModal"
+import { useDebounce } from 'use-debounce' 
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState("All")
   const [users, setUsers] = useState([])
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [activeUsersCount, setActiveUsersCount] = useState(0)
+  const [blockedUsersCount, setBlockedUsersCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showBlockModal, setShowBlockModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
@@ -23,35 +28,37 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers()
-  }, [currentPage, searchTerm, statusFilter])
+  }, [currentPage, debouncedSearchTerm, statusFilter])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-
-      const response = await dev_admin_api.get("/user-list")
-      let filteredUsers = response.data.users
-
-      if (searchTerm) {
-        filteredUsers = filteredUsers.filter(
-          (user) =>
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.phone.includes(searchTerm),
-        )
+      
+      const response = await dev_admin_api.get("/user-list", {
+        params: {
+          search: debouncedSearchTerm,
+          status: statusFilter,
+          page: currentPage,
+          limit: itemsPerPage
+        }
+      })
+      
+      setUsers(response.data.users)
+      setTotalPages(response.data.totalPages)
+      setTotalUsers(response.data.total)
+      
+      // Set counts from backend if available
+      if (response.data.activeCount !== undefined) {
+        setActiveUsersCount(response.data.activeCount)
+        setBlockedUsersCount(response.data.blockedCount)
+      } else {
+        // Fallback to local calculation
+        const active = response.data.users.filter(u => u.status === "Active").length
+        const blocked = response.data.users.filter(u => u.status === "Blocked").length
+        setActiveUsersCount(active)
+        setBlockedUsersCount(blocked)
       }
-
-      if (statusFilter !== "All") {
-        filteredUsers = filteredUsers.filter((user) => user.status === statusFilter)
-      }
-
-      const totalItems = filteredUsers.length
-      const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage)
-      const startIndex = (currentPage - 1) * itemsPerPage
-      const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage)
-
-      setUsers(paginatedUsers)
-      setTotalPages(calculatedTotalPages)
+      
       setLoading(false)
     } catch (error) {
       toast.error("Failed to load users")
@@ -62,21 +69,30 @@ const UserManagement = () => {
   const handleToggleUserStatus = async (userEmail) => {
     try {
       setTogglingUserStatus(true)
+      const user = users.find((u) => u.email === userEmail)
+      const oldStatus = user.status
+      const newStatus = oldStatus === "Active" ? "Blocked" : "Active"
+      
       const response = await dev_admin_api.patch(`/user-toogle-status/${userEmail}`)
+      
       if (response.data.success) {
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.email === userEmail
-              ? {
-                  ...user,
-                  status: user.status === "Active" ? "Blocked" : "Active",
-                }
-              : user,
-          ),
+        // Update local state
+        setUsers(prevUsers => 
+          prevUsers.map(u => 
+            u.email === userEmail ? { ...u, status: newStatus } : u
+          )
         )
-        const user = users.find((u) => u.email === userEmail)
-        const action = user.status === "Active" ? "blocked" : "unblocked"
-        toast.success(`User ${action} successfully`)
+        
+        // Update counts
+        if (oldStatus === "Active") {
+          setActiveUsersCount(prev => prev - 1)
+          setBlockedUsersCount(prev => prev + 1)
+        } else {
+          setActiveUsersCount(prev => prev + 1)
+          setBlockedUsersCount(prev => prev - 1)
+        }
+        
+        toast.success(`User ${newStatus.toLowerCase()} successfully`)
       }
     } catch (error) {
       toast.error("Failed to update user status")
@@ -84,10 +100,6 @@ const UserManagement = () => {
       setTogglingUserStatus(false)
     }
   }
-
-  const filteredUsers = users
-  const activeUsersCount = users.filter((user) => user.status === "Active").length
-  const blockedUsersCount = users.filter((user) => user.status === "Blocked").length
 
   const openBlockModal = (user) => {
     setSelectedUser(user)
@@ -100,10 +112,6 @@ const UserManagement = () => {
       setShowBlockModal(false)
       setSelectedUser(null)
     }
-  }
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
   }
 
   const handlePrevPage = () => {
@@ -134,7 +142,7 @@ const UserManagement = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-600 truncate">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
             </div>
             <div className="p-3 rounded-lg bg-blue-50 text-blue-600 flex-shrink-0">
               <Users size={20} className="sm:w-6 sm:h-6" />
@@ -231,8 +239,8 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+              {users.length > 0 ? (
+                users.map((user) => (
                   <UserTableRow key={user.email} user={user} onToggleStatus={() => openBlockModal(user)} />
                 ))
               ) : (

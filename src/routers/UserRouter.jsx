@@ -27,8 +27,7 @@ const UserRouter = () => {
           <Route path="services" element={<ServicesPage />} />
           <Route path="portfolio" element={<Portfolio />} />
           <Route path="contact" element={<ContactPage />} />
-          <Route path="shop" element={<ShopPage />} />
-          <Route path="products" element={<ProductsPage />} />
+          <Route path="shop" element={<ProductsPage />} />
           <Route path="product/:id" element={<ProductPage />} />
         </Route>
       </Routes>
