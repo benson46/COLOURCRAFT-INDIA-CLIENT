@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useLocation } from "react-router"
+import { useState } from "react";
+import { useLocation } from "react-router";
 import {
   MagnifyingGlassIcon,
   BellIcon,
@@ -7,29 +7,51 @@ import {
   SunIcon,
   MoonIcon,
   UserCircleIcon,
-} from "@heroicons/react/24/outline"
+} from "@heroicons/react/24/outline";
+import { useAdminAuth } from "../../../context/adminAuthContext";
+import { dev_admin_api } from "../../../utils/axios";
+import { toast } from "react-toastify";
+
+
 
 const Header = () => {
-  const location = useLocation()
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const location = useLocation();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const {admin,setAdmin} = useAdminAuth();
 
   const getPageTitle = (pathname) => {
-    if (pathname.includes("/admin/users")) return "User Management"
-    if (pathname.includes("/admin/orders")) return "Orders Management"
-    if (pathname.includes("/admin/products")) return "Products Management"
-    if (pathname.includes("/admin/categories")) return "Categories Management"
-    if (pathname.includes("/admin/settings")) return "Settings"
-    return "Dashboard"
-  }
+    if (pathname.includes("/admin/users")) return "User Management";
+    if (pathname.includes("/admin/orders")) return "Orders Management";
+    if (pathname.includes("/admin/products")) return "Products Management";
+    if (pathname.includes("/admin/categories")) return "Categories Management";
+    if (pathname.includes("/admin/settings")) return "Settings";
+    return "Dashboard";
+  };
+
+
 
   const toggleProfile = () => {
-    setIsProfileOpen(!isProfileOpen)
-  }
+    setIsProfileOpen(!isProfileOpen);
+  };
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const logoutAdmin = async() => {
+    try {
+      const response = await dev_admin_api.post("/logout"); 
+
+      if(response.data.success){
+        setAdmin(null);
+        localStorage.removeItem("admin");
+        toast.success("Logged out successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to logout. Please try again.");
+    }
   }
 
   return (
@@ -74,7 +96,10 @@ const Header = () => {
 
           {/* Notifications */}
           <div className="relative">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative" aria-label="Notifications">
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
+              aria-label="Notifications"
+            >
               <BellIcon className="h-5 w-5 text-gray-600" />
               <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400"></span>
             </button>
@@ -89,7 +114,9 @@ const Header = () => {
             >
               <UserCircleIcon className="h-8 w-8 text-gray-600" />
               <div className="hidden sm:block text-left">
-                <span className="text-sm font-medium text-gray-700">John Doe</span>
+                <span className="text-sm font-medium text-gray-700">
+                  John Doe
+                </span>
                 <div className="text-xs text-gray-500">Administrator</div>
               </div>
               <ChevronDownIcon className="h-4 w-4 text-gray-500" />
@@ -98,18 +125,28 @@ const Header = () => {
             {/* Dropdown Menu */}
             {isProfileOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)} aria-hidden="true" />
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsProfileOpen(false)}
+                  aria-hidden="true"
+                />
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  <a
+                    href="#"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
                     Profile
                   </a>
-                  <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  <a
+                    href="#"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
                     Settings
                   </a>
                   <hr className="my-1 border-gray-200" />
-                  <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  <button onClick={logoutAdmin} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                     Logout
-                  </a>
+                  </button>
                 </div>
               </>
             )}
@@ -117,7 +154,7 @@ const Header = () => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;
