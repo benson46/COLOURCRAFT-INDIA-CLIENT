@@ -64,7 +64,7 @@ const Products = () => {
     try {
       setLoading(true)
       const response = await dev_admin_api.get("/product")
-      const apiProducts = response.data.products // Store raw API response
+      const apiProducts = response.data.products.products
 
       // Apply filters to API data directly
       let filteredProducts = apiProducts

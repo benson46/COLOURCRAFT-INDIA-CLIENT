@@ -7,11 +7,13 @@ import { format } from "date-fns"
 import ConfirmationModal from "../../components/common/ConfirmationModal"
 import { dev_admin_api } from "../../utils/axios"
 import LoadingButton from "../../components/common/LoadingButton"
+import { useDebounce } from 'use-debounce' 
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false)
@@ -22,7 +24,12 @@ const CategoryManagement = () => {
     status: "Active",
   })
 
-  // Loading states for different actions
+  // Stats states
+  const [totalCategories, setTotalCategories] = useState(0)
+  const [activeCategoriesCount, setActiveCategoriesCount] = useState(0)
+  const [inactiveCategoriesCount, setInactiveCategoriesCount] = useState(0)
+
+  // Loading states
   const [addingCategory, setAddingCategory] = useState(false)
   const [updatingCategory, setUpdatingCategory] = useState(false)
   const [togglingStatus, setTogglingStatus] = useState(false)
@@ -37,10 +44,16 @@ const CategoryManagement = () => {
       try {
         setLoading(true)
         const response = await dev_admin_api.get(
-          `/category?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}`,
+          `/category?page=${currentPage}&limit=${itemsPerPage}&search=${debouncedSearchTerm}`,
         )
+        
         setCategories(response.data.categories)
         setTotalPages(response.data.totalPages)
+        
+        // Set stats from backend response
+        setTotalCategories(response.data.totalCategories || 0)
+        setActiveCategoriesCount(response.data.activeCount || 0)
+        setInactiveCategoriesCount(response.data.inactiveCount || 0)
       } catch (error) {
         console.error("Error fetching categories:", error)
         toast.error("Failed to load categories")
@@ -49,18 +62,24 @@ const CategoryManagement = () => {
       }
     }
     fetchCategories()
-  }, [currentPage, searchTerm])
+  }, [currentPage, debouncedSearchTerm])
 
   const handleAddCategory = async () => {
     try {
       setAddingCategory(true)
       const response = await dev_admin_api.post("/category", formData)
-      setCategories((prev) => [response.data, ...prev])
+      
+      // Update stats
+      setTotalCategories(prev => prev + 1)
+      setActiveCategoriesCount(prev => prev + 1)
+      
+      // Add new category to the beginning of the list
+      setCategories(prev => [response.data.category, ...prev])
       setShowAddModal(false)
       setFormData({ title: "", status: "Active" })
       toast.success("Category added successfully")
     } catch (error) {
-      toast.error("Failed to add category")
+      toast.error(error.response?.data?.error || "Failed to add category")
     } finally {
       setAddingCategory(false)
     }
@@ -72,16 +91,14 @@ const CategoryManagement = () => {
       await dev_admin_api.patch(`/category/${selectedCategory._id}`, {
         title: formData.title,
       })
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat._id === selectedCategory._id
-            ? {
-                ...cat,
-                title: formData.title,
-              }
-            : cat,
-        ),
+      
+      // Update category in the list
+      setCategories(prev =>
+        prev.map(cat =>
+          cat._id === selectedCategory._id ? { ...cat, title: formData.title } : cat
+        )
       )
+      
       setShowEditModal(false)
       setShowEditConfirmModal(false)
       setSelectedCategory(null)
@@ -103,9 +120,23 @@ const CategoryManagement = () => {
       await dev_admin_api.patch(`/category-tootgle-status/${selectedCategory._id}`, {
         status: newStatus,
       })
-      setCategories((prev) =>
-        prev.map((cat) => (cat._id === selectedCategory._id ? { ...cat, status: newStatus } : cat)),
+      
+      // Update category status in the list
+      setCategories(prev =>
+        prev.map(cat => 
+          cat._id === selectedCategory._id ? { ...cat, status: newStatus } : cat
+        )
       )
+      
+      // Update stats counts
+      if (newStatus === "Active") {
+        setActiveCategoriesCount(prev => prev + 1)
+        setInactiveCategoriesCount(prev => prev - 1)
+      } else {
+        setActiveCategoriesCount(prev => prev - 1)
+        setInactiveCategoriesCount(prev => prev + 1)
+      }
+      
       setShowBlockModal(false)
       setSelectedCategory(null)
       toast.success(`Category ${newStatus === "Active" ? "unblocked" : "blocked"} successfully`)
@@ -128,10 +159,6 @@ const CategoryManagement = () => {
   const openBlockModal = (category) => {
     setSelectedCategory(category)
     setShowBlockModal(true)
-  }
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
   }
 
   const handlePrevPage = () => {
@@ -164,13 +191,13 @@ const CategoryManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Fixed to show totals */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Categories</p>
-              <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalCategories}</p>
             </div>
             <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,9 +216,7 @@ const CategoryManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Categories</p>
-              <p className="text-2xl font-bold text-green-600">
-                {categories.filter((cat) => cat.status === "Active").length}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{activeCategoriesCount}</p>
             </div>
             <div className="p-3 rounded-lg bg-green-50 text-green-600">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,10 +229,8 @@ const CategoryManagement = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Products</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {categories.reduce((sum, cat) => sum + cat.productCount, 0)}
-              </p>
+              <p className="text-sm font-medium text-gray-600">Inactive Categories</p>
+              <p className="text-2xl font-bold text-purple-600">{inactiveCategoriesCount}</p>
             </div>
             <div className="p-3 rounded-lg bg-purple-50 text-purple-600">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
